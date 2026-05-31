@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DET Speaking Practice</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c0c10;
+  --surface: #13131a;
+  --surface2: #1c1c26;
+  --surface3: #252532;
+  --border: #2a2a3a;
+  --accent: #a78bfa;
+  --accent2: #34d399;
+  --accent3: #f472b6;
+  --warn: #fbbf24;
+  --text: #e8e8f2;
+  --text2: #9898b8;
+  --text3: #606080;
+  --ja-color: #c4b5fd;
+  --en-color: #6ee7b7;
+  --active-glow: rgba(167,139,250,0.15);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── HEADER ── */
+header {
+  position: sticky; top: 0; z-index: 200;
+  background: rgba(12,12,16,0.96);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+}
+.header-title {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+.header-title h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.2rem; color: var(--accent);
+  letter-spacing: 0.02em;
+}
+.pill {
+  font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; padding: 3px 9px; border-radius: 20px;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text3);
+  transition: all 0.3s;
+}
+.pill.playing { background: rgba(167,139,250,0.15); border-color: var(--accent); color: var(--accent); }
+.pill.shuffle { background: rgba(244,114,182,0.15); border-color: var(--accent3); color: var(--accent3); }
+.pill.quiz { background: rgba(251,191,36,0.15); border-color: var(--warn); color: var(--warn); }
+
+/* ── SEEK BAR ── */
+.seek-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+}
+.seek-row input[type=range] {
+  flex: 1; -webkit-appearance: none; height: 3px;
+  background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
+}
+.seek-row input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px;
+  border-radius: 50%; background: var(--accent); cursor: pointer;
+  box-shadow: 0 0 8px rgba(167,139,250,0.6);
+}
+.time-display { font-size: 0.68rem; color: var(--text3); min-width: 90px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ── CONTROL ROWS ── */
+.controls { display: flex; flex-direction: column; gap: 7px; }
+.ctrl-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ctrl-label {
+  font-size: 0.62rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.09em; color: var(--text3); min-width: 40px;
+}
+button {
+  font-family: 'DM Sans', sans-serif; font-size: 0.76rem; font-weight: 500;
+  cursor: pointer; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text);
+  padding: 5px 11px; border-radius: 7px; transition: all 0.15s; white-space: nowrap;
+}
+button:hover { background: var(--surface3); border-color: var(--text3); }
+button:active { transform: scale(0.96); }
+.btn-play { background: var(--accent); color: #0a0020; border-color: var(--accent); font-weight: 700; }
+.btn-play:hover { filter: brightness(1.1); background: var(--accent); }
+.btn-green { background: rgba(52,211,153,0.15); color: var(--accent2); border-color: var(--accent2); }
+.btn-green:hover { background: rgba(52,211,153,0.25); }
+.btn-pink { background: rgba(244,114,182,0.12); color: var(--accent3); border-color: var(--accent3); }
+.btn-pink:hover { background: rgba(244,114,182,0.22); }
+.btn-warn { background: rgba(251,191,36,0.12); color: var(--warn); border-color: var(--warn); }
+.btn-warn:hover { background: rgba(251,191,36,0.22); }
+.btn-stop { background: rgba(248,113,113,0.1); color: #f87171; border-color: rgba(248,113,113,0.4); }
+.btn-on { background: rgba(167,139,250,0.2) !important; border-color: var(--accent) !important; color: var(--accent) !important; }
+select {
+  font-family: 'DM Sans', sans-serif; font-size: 0.76rem;
+  background: var(--surface2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 7px;
+  padding: 5px 9px; cursor: pointer; outline: none;
+}
+select:focus { border-color: var(--accent); }
+input[type=range].speed-range {
+  -webkit-appearance: none; width: 70px; height: 3px;
+  background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
+}
+input[type=range].speed-range::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 13px; height: 13px;
+  border-radius: 50%; background: var(--accent2); cursor: pointer;
+}
+.speed-label { font-size: 0.72rem; color: var(--text2); min-width: 30px; }
+
+/* ── PROGRESS BAR ── */
+.progress-wrap { height: 2px; background: var(--border); margin-top: 8px; border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); width: 0%; transition: width 0.4s ease; }
+
+/* ── QUIZ OVERLAY ── */
+#quizOverlay {
+  display: none; position: fixed; inset: 0; z-index: 500;
+  background: rgba(12,12,16,0.97);
+  flex-direction: column; align-items: center; justify-content: center;
+  padding: 30px 20px; text-align: center;
+}
+#quizOverlay.show { display: flex; }
+.quiz-num { font-size: 0.7rem; color: var(--text3); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.1em; }
+.quiz-q {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem; color: var(--warn); margin-bottom: 30px;
+  max-width: 600px; line-height: 1.5;
+}
+.quiz-controls { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.quiz-controls button { min-width: 160px; padding: 10px 20px; font-size: 0.85rem; }
+.quiz-reveal { display: none; margin-top: 20px; max-width: 620px; text-align: left; }
+.quiz-reveal.show { display: block; }
+.quiz-chunk { margin-bottom: 12px; }
+.quiz-chunk .ja { font-size: 0.85rem; color: var(--ja-color); line-height: 1.7; margin-bottom: 2px; }
+.quiz-chunk .en { font-size: 0.9rem; color: var(--en-color); line-height: 1.7; font-weight: 500; }
+
+/* ── TOPIC CARDS ── */
+.topics-wrap { padding: 16px; max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
+.topic-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px 18px;
+  transition: all 0.3s; scroll-margin-top: 260px;
+}
+.topic-card:hover { border-color: var(--surface3); }
+.topic-card.active {
+  background: rgba(167,139,250,0.06);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(167,139,250,0.3), 0 4px 24px var(--active-glow);
+}
+.card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.card-num {
+  font-family: 'Playfair Display', serif; font-size: 0.82rem;
+  width: 28px; height: 28px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface2); color: var(--text3); flex-shrink: 0;
+}
+.topic-card.active .card-num { background: rgba(167,139,250,0.2); color: var(--accent); }
+.card-title { font-size: 0.88rem; font-weight: 600; color: var(--text2); flex: 1; }
+.topic-card.active .card-title { color: var(--accent); }
+.play-btn-small {
+  padding: 3px 9px; font-size: 0.68rem; border-radius: 6px;
+  opacity: 0; transition: opacity 0.2s;
+}
+.topic-card:hover .play-btn-small,
+.topic-card.active .play-btn-small { opacity: 1; }
+.topic-card.active .play-btn-small { color: var(--accent); border-color: var(--accent); background: rgba(167,139,250,0.1); }
+
+/* ── CHUNKS ── */
+.chunks { display: flex; flex-direction: column; gap: 8px; }
+.chunk {
+  padding: 8px 10px; border-radius: 8px;
+  border-left: 2px solid var(--border);
+  background: rgba(255,255,255,0.01);
+  transition: all 0.2s;
+}
+.topic-card.active .chunk { border-left-color: rgba(167,139,250,0.2); }
+.chunk .ja {
+  font-size: 0.8rem; color: var(--ja-color); line-height: 1.75;
+  margin-bottom: 3px; opacity: 0.85;
+}
+.chunk .en {
+  font-size: 0.85rem; color: var(--en-color); line-height: 1.75;
+  font-weight: 500;
+}
+
+footer { text-align: center; padding: 30px 20px; color: var(--text3); font-size: 0.7rem; }
+@media(max-width:600px){
+  header { padding: 10px 14px; }
+  .quiz-q { font-size: 1.2rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">
+    <h1>🎤 DET Speaking Practice</h1>
+    <span class="pill" id="statusPill">Ready</span>
+    <span class="pill shuffle" id="shufflePill" style="display:none">🔀 Shuffle</span>
+    <span class="pill quiz" id="quizPill" style="display:none">📝 Quiz</span>
+  </div>
+
+  <div class="seek-row">
+    <span style="font-size:0.65rem;color:var(--text3)">◀▶</span>
+    <input type="range" id="seekBar" value="0" min="0" max="100" step="0.1">
+    <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
+  </div>
+
+  <div class="controls">
+    <!-- Row 1: playback -->
+    <div class="ctrl-row">
+      <span class="ctrl-label">All</span>
+      <button class="btn-play" onclick="playAll()">▶ Play All</button>
+      <button onclick="skipBack()">«5s</button>
+      <button onclick="skipFwd()">5s»</button>
+      <button class="btn-stop" onclick="stopAll()">⏹ Stop</button>
+      <button id="btnRepeat" onclick="toggleRepeat()">🔁 OFF</button>
+    </div>
+    <!-- Row 2: topic -->
+    <div class="ctrl-row">
+      <span class="ctrl-label">Topic</span>
+      <select id="topicSel"></select>
+      <button class="btn-green" onclick="playSelected()">▶ Play</button>
+    </div>
+    <!-- Row 3: group -->
+    <div class="ctrl-row">
+      <span class="ctrl-label">Group</span>
+      <button onclick="prevGroup()">◀</button>
+      <select id="groupSel"></select>
+      <button onclick="nextGroup()">▶</button>
+      <button class="btn-green" onclick="playGroup()">▶ Play 5</button>
+    </div>
+    <!-- Row 4: shuffle + quiz -->
+    <div class="ctrl-row">
+      <span class="ctrl-label">Mode</span>
+      <button class="btn-pink" id="btnShuffle" onclick="playShuffle()">🔀 Shuffle</button>
+      <button class="btn-warn" onclick="startQuiz()">📝 Quiz Mode</button>
+    </div>
+    <!-- Row 5: speed -->
+    <div class="ctrl-row">
+      <span class="ctrl-label">Speed</span>
+      <input type="range" class="speed-range" id="speedRange" min="0.5" max="2" step="0.05" value="1" oninput="setSpeed(this.value)">
+      <span class="speed-label" id="speedLabel">1.0×</span>
+    </div>
+  </div>
+  <div class="progress-wrap"><div class="progress-fill" id="progressBar"></div></div>
+</header>
+
+<!-- Hidden audio element; src set dynamically -->
+<audio id="audio" preload="none"></audio>
+
+<!-- Quiz Overlay -->
+<div id="quizOverlay">
+  <div class="quiz-num" id="qNum">Topic 1 / 50</div>
+  <div class="quiz-q" id="qTitle"></div>
+  <div class="quiz-controls">
+    <button class="btn-play" onclick="quizPlay()">▶ 音声を聴く</button>
+    <button class="btn-green" onclick="quizReveal()">👁 答えを見る</button>
+    <button onclick="quizNext()">次のトピック →</button>
+    <button class="btn-stop" onclick="quizEnd()">✕ 終了</button>
+  </div>
+  <div class="quiz-reveal" id="qReveal"></div>
+</div>
+
+<div class="topics-wrap" id="topicsWrap"></div>
+
+<footer>50 Topics · DET Speaking Practice · Target 100+</footer>
+
+<script>
+// ── DATA ──
+const TOPICS = [
+  { n:1, title:"Describe a memorable vacation or trip you took.", file:"１__Describe_a_memorable_vacation_or_trip_you_took_.aac", chunks:[
+    {ja:"私にとって、パリへの旅行は人生で最も思い出深い経験の一つでした。", en:"In my opinion, traveling to Paris was one of the most memorable experiences of my life."},
+    {ja:"特別だったのは、仲の良い友人とベルサイユ宮殿を訪れたことです。", en:"What made it so special was visiting the Palace of Versailles with my close friend."},
+    {ja:"庭園に立ったとき、これはWindowsのポストカードで見たあの景色だと突然気づきました。", en:"I remember standing in the gardens and suddenly realizing that this was the exact view I had seen on a Windows postcard."},
+    {ja:"自分の目でそれを見られたことは本当に息をのむほどで——まるで夢のようでした。", en:"Seeing it in person was truly breathtaking — it almost didn't feel real."},
+    {ja:"さらに意味深かったのは、その瞬間を友人と共有できたことです。", en:"What made it even more meaningful was sharing that moment with my friend."},
+    {ja:"二人でただ黙って立ちつくし、その美しさに完全に圧倒されていました。", en:"We just stood there in silence, completely overwhelmed by the beauty."},
+    {ja:"またぜひ戻りたいと思っています——正直、まだまだ見たいものがたくさんあるからです。", en:"I would absolutely go back again — and honestly, there's still so much more I want to explore there."}
+  ]},
+  { n:2, title:"Talk about a person who has influenced your life.", file:"２__Talk_about_a_person_who_has_influenced_your_life_.aac", chunks:[
+    {ja:"私の人生に最も大きな影響を与えてくれた人の一人は、親友です。", en:"One of the people who has influenced my life the most is my best friend."},
+    {ja:"彼女は看護師で、高校時代からの友人です。", en:"She's a nurse, and I've known her since high school."},
+    {ja:"彼女にはファシリティドッグのハンドラーになるという夢があり——そして今年、ついにその夢を叶えました。", en:"She had a dream of becoming a facility dog handler — and this year, she finally achieved it."},
+    {ja:"決して簡単な道のりではありませんでした。", en:"It wasn't an easy journey."},
+    {ja:"途中でかなりの困難に直面しましたが、彼女は決して諦めませんでした。", en:"She faced quite a few challenges along the way, but she never gave up."},
+    {ja:"彼女の姿を見て、本当にやりたいことを追いかけるのに遅すぎることはないと気づかされました。", en:"Watching her made me realize that it's never too late to go after what you truly want."},
+    {ja:"一度諦めかけていた自分の夢を、本気で追いかける勇気をもらいました。", en:"Her story gave me the courage to seriously pursue my own dream, which I had once given up on."}
+  ]},
+  { n:3, title:"Describe your ideal work environment.", file:"３__Describe_your_ideal_work_environment_.aac", chunks:[
+    {ja:"私が思うに、職場環境で最も大切なのは一緒に働く人々です。", en:"In my view, the most important thing about a work environment is the people."},
+    {ja:"上司や同僚と、遠慮なくオープンに話し合える環境で働きたいと思っています。", en:"I'd love to work with colleagues and managers who can communicate openly and honestly, without hesitation."},
+    {ja:"例えば、問題が起きたとき、どう思われるかを気にせず、すぐにチームで話し合えることが大切です。", en:"For instance, when a problem comes up, I want to be able to talk it through with my team right away, without worrying about how it might come across."},
+    {ja:"そして誰かが困っているとき、自然とお互いに助け合えるようなチームでありたいと思います。", en:"And when someone is struggling, I want us to be the kind of team that naturally steps in to help each other."},
+    {ja:"安心感とサポートがあれば、余計なストレスなく仕事に集中できるので、そういう環境で一番力を発揮できると思います。", en:"I think I would be most productive in that kind of environment because when I feel safe and supported, I can focus fully on my work without unnecessary stress."},
+    {ja:"信頼関係があるかどうかが、すべてを変えると思っています。", en:"And that sense of trust truly makes all the difference."}
+  ]},
+  { n:4, title:"Explain the benefits of learning a second language.", file:"４_Explain_the_benefits_of_learning_a_second_language_.aac", chunks:[
+    {ja:"第二言語を学ぶことは、本当に自分の世界を広げてくれます。", en:"Learning a second language can truly expand your world."},
+    {ja:"私の場合、英語を学ぶことで多くの新しい可能性が開きました——英語話者のコンテンツを楽しめるようになり、世界中の人々ともつながれるようになりました。", en:"In my case, studying English has opened up so many new possibilities — I can now enjoy content made by English speakers and connect with people from all over the globe."},
+    {ja:"もちろん、最も大きな課題は継続することです。", en:"Of course, one of the biggest challenges is staying consistent."},
+    {ja:"言語習得には時間がかかり、近道はありません——毎日少しずつ続けていくしかないのです。", en:"Language learning takes time, and there are no shortcuts — the only way forward is to keep going, little by little, every single day."},
+    {ja:"英語に自信がついたら、次はスペイン語を学びたいと思っています。スペイン語圏の文化や歴史に純粋に興味があるからです。", en:"Once I feel confident in English, I'd love to start learning Spanish next, because I'm genuinely curious about the culture and history of Spanish-speaking countries."},
+    {ja:"それが自然な次のステップだと感じています。", en:"That feels like the natural next step for me."}
+  ]},
+  { n:5, title:"Discuss the role of technology in education.", file:"５_Discuss_the_role_of_technology_in_education_.aac", chunks:[
+    {ja:"テクノロジーは人々の学び方を完全に変えました——今やあらゆることを瞬時に調べられ、世界中のどこからでも学べるようになりました。これは以前は考えられないことでした。", en:"Technology has completely changed the way people learn — we can now look up anything instantly and study from anywhere in the world, which was simply impossible before."},
+    {ja:"私自身の経験では、オンラインで学ぶことは最もやりがいのあることの一つです。", en:"In my own experience, studying online has been one of the most rewarding things I've done."},
+    {ja:"教室に行く必要がないので、家でも、カフェでも、自分に合った場所で学ぶことができます。つまり、日常のルーティンに勉強を組み込みやすくなります。", en:"I don't have to be in a classroom, so I can learn at home, at a café, or wherever works best for me, which means I can fit studying into my daily routine much more easily."},
+    {ja:"ただし、一つのデメリットは、長時間画面を見続けることによる目の疲れなので、バランスを見つけることが大切です。", en:"However, one downside is eye strain from looking at screens for too long, so finding the right balance is important."},
+    {ja:"私にとってオンライン学習は人生を変えるものでした。こうした教育が可能な時代に生きていることに感謝しています。", en:"For me, online learning has been life-changing, and I feel grateful to live in an era where this kind of education is possible."}
+  ]},
+  { n:6, title:"Describe a book that changed your perspective.", file:"６_Describe_a_book_that_changed_your_perspective_.aac", chunks:[
+    {ja:"私の視野を本当に変えた本は「Atomic Habits」です。", en:"A book that truly changed my perspective is \"Atomic Habits.\""},
+    {ja:"この本は、日々の小さな習慣の大切さと、それが積み重なることでどれほど大きな変化をもたらすかを教えてくれました。", en:"It taught me the importance of small daily habits and how they can add up to make a big difference over time."},
+    {ja:"英語を勉強していて全く上達を感じられず、何度も諦めそうになったことがありました。", en:"For example, there were many times when I was studying English and couldn't feel any progress — I almost gave up more than once."},
+    {ja:"でもこの本を読んだ後、結果に集中するのをやめ、過程そのものを大切にするようになりました。", en:"But after reading this book, I stopped focusing on results and started valuing the process itself."},
+    {ja:"習慣を作ること自体が、十分な目標になったのです。", en:"Just building the habit became enough."},
+    {ja:"振り返ってみると、その考え方の変化がこの本から得た最も大切なものだったと思います。", en:"Looking back, that shift in mindset was probably the most valuable thing I got from this book."},
+    {ja:"目標に対して継続することに悩んでいる人には、絶対にお勧めしたい一冊です。", en:"I would absolutely recommend it to anyone who is struggling to stay consistent with their goals."}
+  ]},
+  { n:7, title:"Talk about a time you overcame a challenge.", file:"７_Talk_about_a_time_you_overcame_a_challenge_.aac", chunks:[
+    {ja:"私が苦労した困難の一つは英語学習です。", en:"One challenge I've struggled with is learning English."},
+    {ja:"よく伸び悩みを感じてなかなか上達を実感できず、モチベーションを保つことがとても難しかったです。", en:"I often hit a plateau and couldn't feel any progress, which made it really hard to stay motivated."},
+    {ja:"最も助けになったのは、たとえ少しでも毎日習慣にすることでした。", en:"What helped me the most was making it a daily habit, even in small ways."},
+    {ja:"忙しい日でも、通勤中に英語を聴いたり、短い文章を読んだりして、何らかの形で英語に触れるようにしました。", en:"Even on busy days, I would listen to English during my commute or read a short passage — just to stay in touch with the language somehow."},
+    {ja:"振り返ってみると、強度よりも継続性の方が大事だと学びました。", en:"Looking back, I learned that consistency matters more than intensity."},
+    {ja:"以前は自分のレベルより難しい教材に挑戦していましたが、それは挫折につながるだけでした。", en:"I used to challenge myself with materials that were above my level, but that only led to frustration."},
+    {ja:"自分に合った教材を見つけて、毎日続けられる工夫をすることの方が大切だと気づきました。", en:"I realized that finding materials that suit you and figuring out how to keep going every day is what truly makes the difference."}
+  ]},
+  { n:8, title:"Describe your daily routine on a typical weekday.", file:"８_Describe_your_daily_routine_on_a_typical_weekday_.aac", chunks:[
+    {ja:"私はいつも朝5時に起きます。", en:"I usually wake up at five in the morning."},
+    {ja:"平日は仕事をして、休みの日は勉強に時間を使います。", en:"On weekdays I go to work, and on my days off I dedicate my time to studying."},
+    {ja:"例えば、今は英語を勉強しているので、休みの日はほとんど勉強に費やしています。", en:"For example, I'm currently studying English, so my days off are mostly spent on that."},
+    {ja:"空いた時間を最大限に活かすようにしています。", en:"I try to make the most of every free moment I have."},
+    {ja:"リラックス方法としては、アロマディフューザーをつけて、ヒーリングミュージックを流しながら、静かにコーヒーを飲むことが一番好きです。", en:"My favorite way to relax is to use my aroma diffuser, put on some healing music, and enjoy a quiet cup of coffee."},
+    {ja:"その組み合わせが、長い一日の後にリセットするのに本当に役立っています。", en:"That combination really helps me reset after a long day."}
+  ]},
+  { n:9, title:"Explain why it's important to help others.", file:"９__Explain_why_it_s_important_to_help_others_.aac", chunks:[
+    {ja:"他者を助けることが大切だと思う理由は、他ではなかなか身につけられないスキルを身につけられるからです——コミュニケーション能力やチームワークなどです。", en:"I think helping others is important because it allows you to develop skills that you can't easily learn elsewhere — such as communication and teamwork."},
+    {ja:"私の場合、障がい者施設で働いているので、誰かを支えることがどれほど意味のあることか、身をもって理解しています。", en:"In my case, I work at a care facility for people with disabilities, so I understand firsthand how meaningful it is to support someone."},
+    {ja:"小さな親切が誰かの生活に大きな違いをもたらす場面を、毎日目にしています。", en:"Every day I see how even a small act of kindness can make a real difference in someone's life."},
+    {ja:"さらに、より多くの人がお互いを助け合うことで、誰もがサポートされていると感じられる社会が生まれます。", en:"On top of that, when more people help each other, it creates a society where everyone feels supported and valued."},
+    {ja:"正直、それは毎日職場で実感することです。", en:"And honestly, that's something I'm reminded of every single day at work."}
+  ]},
+  { n:10, title:"Talk about a special celebration in your culture.", file:"１０_Talk_about_a_special_celebration_in_your_culture_.aac", chunks:[
+    {ja:"私の文化で最も特別なお祝いの一つは新年です。", en:"One of the most special celebrations in my culture is New Year."},
+    {ja:"家族や親戚が一か所に集まる、年に一度の機会です。", en:"It's the one time of year when family and relatives all come together in one place."},
+    {ja:"例えば、みんなでテーブルを囲んで特別な料理を食べ、この一年どんなことがあったか、また来年はどんな年にしたいかを話します。", en:"For example, we gather around the table, share special traditional food, and talk about what happened over the past year and what we hope for in the year ahead."},
+    {ja:"みんながゆっくりと立ち止まって、本当につながれる瞬間です。", en:"It's a moment where everyone slows down and really connects."},
+    {ja:"日本では、こうして全員が集まることはとても珍しいので、新年は特別な意味を持っています。", en:"In Japan, it's quite rare for everyone to get together like this, so New Year holds a special meaning."},
+    {ja:"過去一年を振り返り、最も大切な人たちと未来への希望を分かち合える、数少ない機会の一つです。", en:"It's one of the few opportunities we have to reflect on the past year and share our hopes for the future with the people who matter most to us."}
+  ]},
+  { n:11, title:"Describe your dream job.", file:"１１_Describe_your_dream_job_.aac", chunks:[
+    {ja:"私の夢の仕事は、ヘルスサイエンスの知識とプログラミングのスキルを組み合わせた仕事です。", en:"My dream job is one where I can combine my knowledge of health science with my programming skills."},
+    {ja:"具体的には、健康に関する情報をわかりやすく伝えるコンテンツ作りや、人々の健康をサポートするシステムを作ることに関わりたいと思っています。", en:"Specifically, I'd love to be involved in creating content that makes health information easy to understand, or building systems that support people's wellbeing."},
+    {ja:"例えば、健康教育のオンラインコンテンツを作ることや、生活の質を向上させるアプリを作ること——そういったことを本当に意義深いと感じます。", en:"For example, developing online educational content about health, or building an app that helps improve someone's quality of life — those are the kinds of things I find truly meaningful."},
+    {ja:"そこに到達するためには、ヘルスサイエンスの知識だけでなく、強いコミュニケーション能力も必要だと思います。", en:"To get there, I think I'll need not only knowledge of health science, but also strong communication skills."},
+    {ja:"だからこそ、毎日学び続けることが大切だと感じています。", en:"That's why I believe it's so important to keep learning every day."}
+  ]},
+  { n:12, title:"Discuss the importance of physical exercise.", file:"１２_Discuss_the_importance_of_physical_exercise_.aac", chunks:[
+    {ja:"身体を動かすことは、健康を維持するために非常に重要だと思います。", en:"I think physical exercise is extremely important for maintaining health."},
+    {ja:"運動は体の健康だけでなく、ストレス解消や精神的な安定にもつながります。これは時間をかけて実感するようになったことです。", en:"It benefits not only the body but also helps relieve stress and supports mental stability, which is something I've come to appreciate more over time."},
+    {ja:"例えば、仕事の後に少し歩くようにしています。", en:"To give you an example, I try to walk a little after work."},
+    {ja:"短い時間でも、体を動かすと気分がスッキリして、その日の疲れがリセットされる感覚があります。", en:"Even for a short time, moving my body makes me feel refreshed and gives me a sense of resetting from the day's fatigue."},
+    {ja:"毎日激しい運動をする必要はありません——大切なのは、自分のペースで無理なく続けることだと思います。", en:"You don't need to do intense exercise every day — what matters is continuing at your own pace without pushing too hard."},
+    {ja:"ウォーキングやストレッチのような軽い運動でも、継続することで大きな違いが生まれます。これからも続けていきたい習慣です。", en:"Even light activity like walking or stretching can make a significant difference when done consistently, and that's a habit I want to keep building on."}
+  ]},
+  { n:13, title:"Talk about a team project you participated in.", file:"１３_Talk_about_a_team_project_you_participated_in_.aac", chunks:[
+    {ja:"チームプロジェクトで印象に残っているのは、職場での、一人一人の障がい者へのケア方針を見直すためのグループでの取り組みです。", en:"One team project I remember well is a group effort at my workplace to review our care approach for each individual with a disability."},
+    {ja:"私はどんなサポートを提供するのが最も効果的かという情報を集める役割を担当しました。", en:"I was responsible for gathering information about what kinds of support would be most effective."},
+    {ja:"チームの全員が異なるアイデアを持ち寄り、話し合いを重ねた結果、一人では思いつかなかったようなアプローチが生まれました。", en:"Each team member brought different ideas to the table, and through discussion, we came up with approaches that none of us would have thought of alone."},
+    {ja:"振り返ってみると、チームで取り組む最大のメリットはお互いの強みを活かせることだと気づきました。", en:"Looking back, I realized that the greatest benefit of working as a team is being able to draw on each other's strengths."},
+    {ja:"その経験は、一人でできることよりも、一緒に成し遂げられることの方がはるかに大きいと改めて教えてくれました。", en:"And that experience reminded me just how much more we can achieve together than we ever could on our own."}
+  ]},
+  { n:14, title:"Describe your favorite season of the year.", file:"１４__Describe_your_favorite_season_of_the_year_.aac", chunks:[
+    {ja:"私が一番好きな季節は春です。", en:"My favorite season is spring."},
+    {ja:"暑すぎず寒すぎず、外にいるのがとても気持ちいい季節だと思います。", en:"It's not too hot and not too cold — it's just the most comfortable time to be outside."},
+    {ja:"例えば、春になると桜が咲いて、街全体がピンク色に染まります。", en:"For example, when spring comes, the cherry blossoms bloom and the whole town turns pink."},
+    {ja:"桜の花びらが風に舞う景色を見ると、自然と幸せな気持ちになります。", en:"Seeing the petals dancing in the wind naturally makes me feel happy."},
+    {ja:"春が好きなもう一つの理由は、日本では入学式や卒業式が春に行われるので、たくさんの思い出が詰まっている季節だからです。", en:"Another reason I love spring is that in Japan, graduation and entrance ceremonies are held in spring, so it's a season full of memories."}
+  ]},
+  { n:15, title:"Talk about a useful app or website you use.", file:"１５__Talk_about_a_useful_app_or_website_you_use_.aac", chunks:[
+    {ja:"私が毎日使っている便利なアプリはYouTubeです。英語学習を毎日の習慣にするのにとても役立っています。", en:"One app I use every day is YouTube, and it's been incredibly helpful for making English learning a consistent habit."},
+    {ja:"例えば、通勤時間やスキマ時間に、5〜10分だけリスニングやスピーキングの練習をすることができます——それが思った以上に積み重なります。", en:"For instance, during my commute or in small pockets of free time, I can practice listening or speaking for just five to ten minutes — which adds up more than you'd expect."},
+    {ja:"以前は語学学習を継続することが難しかったのですが、このアプリのおかげで毎日英語に触れる習慣が身につきました。", en:"I used to struggle with staying consistent in language learning, but thanks to this app, I've built a routine of engaging with English every single day."},
+    {ja:"短いセッションでも、時間をかけると本当に意味のある上達につながります。", en:"Short sessions really do accumulate into meaningful progress over time."}
+  ]},
+  { n:16, title:"Discuss how social media affects relationships.", file:"１６_Discuss_how_social_media_affects_relationships_.aac", chunks:[
+    {ja:"私の見方では、ソーシャルメディアは遠く離れた人とのつながりを維持するのに本当に役立ちます。", en:"From my perspective, social media is really useful for staying connected with people who live far away."},
+    {ja:"物理的な距離があっても、日常を共有できるのは大きなメリットです。", en:"Even when there's physical distance between us, being able to share everyday moments is a genuine advantage."},
+    {ja:"例えば、直接会う機会が少なくても、投稿を見ることで相手の近況を知り、世界中の人と繋がっている感覚を持てます。", en:"For instance, even when I don't have many chances to meet someone in person, I can still keep up with what's going on in their life through their posts, which helps me feel close to people all around the world."},
+    {ja:"一方で、長時間使いすぎると時間の無駄になったり、目の疲れにもつながります。", en:"At the same time, spending too much time on it can be a waste of time and can also cause eye strain."},
+    {ja:"だから、意識的にバランスよく使うことが大切だと思います。", en:"So using it in a thoughtful and balanced way is something I try to be conscious of."}
+  ]},
+  { n:17, title:"Describe a time you learned something new.", file:"１７__Describe_a_time_you_learned_something_new_.aac", chunks:[
+    {ja:"最近新しく学んだことは、困難なときにモチベーションを維持する方法についてです。", en:"Something I recently learned about is how to maintain motivation when things get difficult."},
+    {ja:"例えば英語を勉強していると、行き詰まりを感じてやる気をなくしやすいので、そういった状況をどう乗り越えるかを知りたくて学ぶようになりました。", en:"When you're studying English, for example, it's easy to feel stuck and lose the drive to keep going — and I wanted to understand how to push through those moments."},
+    {ja:"最終的に辿り着いた答えは、モチベーションだけに頼るのは効果的ではなく、習慣化する方がはるかに持続可能だということです。", en:"What I ultimately discovered is that relying on motivation alone isn't effective — building a habit is far more sustainable."},
+    {ja:"その考え方に切り替えてから、その日の気分に左右されなくなり、自分の学習に対して本当の自信と主体感が生まれました。", en:"Once I made that shift, I noticed I was no longer dependent on how I felt on any given day, which gave me a real sense of confidence and control over my own learning."}
+  ]},
+  { n:18, title:"Talk about a historical event you find interesting.", file:"１８__Talk_about_a_historical_event_you_find_interesting_.aac", chunks:[
+    {ja:"私が興味深いと思う歴史的な出来事は、インターネットの誕生です。", en:"One historical event I find fascinating is the birth of the internet."},
+    {ja:"現代の生活に最も大きな影響を与えた出来事の一つだと思います。", en:"I think it's one of the most influential developments in modern life."},
+    {ja:"インターネットが普及する前は、情報を得るためには図書館に行ったり、専門家に聞くしかありませんでした。", en:"Before the internet became widespread, people had to go to libraries or ask experts to get information."},
+    {ja:"今では、知りたいことが数秒で調べられます。", en:"Now, anything you want to know can be found in seconds."},
+    {ja:"インターネットの登場は、教育・医療・コミュニケーションのあり方を根本から変えました。", en:"The arrival of the internet fundamentally changed the way we approach education, healthcare, and communication."},
+    {ja:"私自身、インターネットがなければ、オンラインで大学の勉強をするという夢を持つこともなかったでしょう。", en:"I know that without it, I never would have had the dream of studying at an online university."}
+  ]},
+  { n:19, title:"Explain the value of time management.", file:"１９__Explain_the_value_of_time_management_.aac", chunks:[
+    {ja:"時間管理は、目標を達成するために欠かせないスキルだと思います。", en:"I think time management is an essential skill for achieving goals."},
+    {ja:"限られた時間の中で何を優先するかを決めることで、実際にどれだけ成し遂げられるかが大きく変わります。", en:"Deciding what to prioritize within limited time can make a huge difference in how much you actually get done."},
+    {ja:"私の場合、仕事と勉強を並行しているので、時間の使い方がとても重要です。", en:"In my case, since I'm balancing work and studying, how I use my time is extremely important."},
+    {ja:"朝の時間を勉強に充てると決めてから、毎日圧倒されることなく学習を続けられるようになりました。", en:"Since deciding to dedicate my morning hours to studying, I've been able to keep up with learning every single day without feeling overwhelmed."},
+    {ja:"大切なのは完璧なスケジュールを作ることではなく、自分のリズムに合った習慣を作ることだと思います。", en:"What matters most, I think, is not creating a perfect schedule, but building habits that match your own rhythm."},
+    {ja:"小さなルールを決めて守ることが、長期的な本当の成果につながります。", en:"Small rules, consistently followed, are what lead to real long-term results."}
+  ]},
+  { n:20, title:"Talk about a favorite childhood memory.", file:"２０_Talk_about_a_favorite_childhood_memory_.aac", chunks:[
+    {ja:"幼い頃の大切な思い出は、家族で海に行ったことです。今でも鮮明に覚えています。", en:"One of my most treasured childhood memories is a family trip to the sea. I still remember it vividly."},
+    {ja:"確か小学生の頃でした。", en:"I think I was in elementary school."},
+    {ja:"初めて父親と一緒に釣りをして、釣れた新鮮な魚をその場で食べました。今でも忘れられません。", en:"I went fishing with my father for the first time, and we ate the fresh fish we caught right there on the spot. It's something I'll never forget."},
+    {ja:"その思い出が今でも特別なのは、家族全員が揃っていたからだと思います。", en:"What makes that memory so special even now is that the whole family was together."},
+    {ja:"日常とは違う場所で、みんなと同じ時間を共有できた経験は、大人になった今でも心の支えになっています。", en:"The experience of sharing the same time and place with everyone, somewhere different from our daily life, is something that still supports me as an adult."}
+  ]},
+  { n:21, title:"Describe a meal you recently enjoyed.", file:"21__Describe_a_meal_you_recently_enjoyed_.aac", chunks:[
+    {ja:"最近特においしいと感じた食事は、海の近くにある海鮮料理店での食事です。", en:"A meal I particularly enjoyed recently was at a seafood restaurant near the ocean."},
+    {ja:"新鮮なお刺身と、丁寧に作られたお味噌汁をいただきました。シンプルだけど素材の良さが際立っていました。", en:"I had fresh sashimi and a carefully made miso soup. It was simple, but the quality of the ingredients really stood out."},
+    {ja:"食事をおいしく感じるのは、料理だけでなく、誰と食べるかも大切だと改めて感じました。", en:"It reminded me that enjoying a meal isn't just about the food — it also depends on who you're eating with."},
+    {ja:"友達とゆっくり話しながら食べた時間が、その経験全体をさらに思い出深いものにしてくれました。それは大切にしたい気持ちです。", en:"Sitting and talking with my friend made the whole experience even more memorable, which is something I want to hold onto."}
+  ]},
+  { n:22, title:"Explain the importance of setting goals.", file:"２２_Explain_the_importance_of_setting_goals_.aac", chunks:[
+    {ja:"目標を設定することは、日々の行動に方向性を与えてくれるので、とても重要だと思います。", en:"I think setting goals is very important because it gives direction to daily actions."},
+    {ja:"目標がないと、何のために頑張っているのかわからなくなってしまうことがあります。", en:"Without a goal, it can be hard to know what you're truly working toward."},
+    {ja:"例えば、英語のテストで目標スコアを設定してから、毎日の学習に集中できるようになりました。", en:"For example, since I set a target score for my English test, I've been able to focus on my daily studying."},
+    {ja:"具体的な数字を決めることで、今日何をすべきかが明確になりました。", en:"Having a specific number made it clear what I need to do each day."},
+    {ja:"大切なのは、目標を高く設定しすぎないことだと思います。", en:"I think the key is not to set goals too high."},
+    {ja:"達成可能な小さな目標を積み重ねていくことで、自信がつき、さらに大きな目標に向かう力が生まれます。", en:"By accumulating small, achievable goals, you build confidence and gain the strength to reach even bigger ones."}
+  ]},
+  { n:23, title:"Talk about a teacher or mentor who supported you.", file:"２３_Talk_about_a_teacher_or_mentor_who_supported_you_.aac", chunks:[
+    {ja:"私の人生で大きな支えになってくれた人は、父親です。", en:"One person who has been a great support in my life is my father."},
+    {ja:"どんなときでも私を信じて、支え続けてくれました。", en:"No matter what, he always believed in me and kept supporting me."},
+    {ja:"例えば、困難に直面しているとき、答えをすぐに教えるのではなく、どうしたら乗り越えられるかを一緒に考えてくれました。", en:"For example, whenever I was facing difficulties, he didn't just give me the answer — he thought through the problem with me."},
+    {ja:"その経験から、自分で問題を乗り越える力が少しずつついていきました。", en:"That experience gradually helped me build the strength to overcome challenges on my own."},
+    {ja:"父親は、人を信じることと、人生に打ちのめされても立ち上がることの大切さを教えてくれました。", en:"My father taught me to trust in people and to get back up even when life knocks you down."},
+    {ja:"父のおかげで、困難を恐れずに向き合う姿勢が身につきました。", en:"Because of him, I've developed the attitude of facing challenges without fear."}
+  ]},
+  { n:24, title:"Describe a change you made to improve your lifestyle.", file:"２４_Describe_a_change_you_made_to_improve_your_lifestyle_.aac", chunks:[
+    {ja:"生活を改善するために行った変化の一つは、早起きして勉強する習慣を作ったことです。", en:"One change I made to improve my lifestyle was building a habit of waking up early to study."},
+    {ja:"以前は夜に勉強しようとしていましたが、疲れていて続けられませんでした。", en:"I used to try to study at night, but I was too tired and couldn't keep it up."},
+    {ja:"仕事の前に早起きして英語を勉強するようになってから、毎日安定した勉強時間を確保できるようになりました。", en:"Since I started waking up early and studying English before work, I've been able to consistently secure study time every day."},
+    {ja:"朝は雑念が少なく頭がクリアなので、集中するには断然一番の時間帯です。", en:"With fewer distractions and a clearer head, mornings are by far the best time for me to focus."},
+    {ja:"最初は早起きがつらかったのですが、習慣になると自然と目が覚めるようになりました。", en:"At first, waking up early was tough, but once it became a habit, I naturally started waking up on my own."},
+    {ja:"このルーティンを始めてから、一日がより充実した形で始まり、考え方にもポジティブな変化が生まれたと感じています。", en:"Since starting this routine, I feel like my days begin in a more fulfilling way, and I've noticed positive changes in my mindset too."}
+  ]},
+  { n:25, title:"Talk about a piece of news that caught your attention.", file:"２５_Talk_about_a_piece_of_news_that_caught_your_attention_.aac", chunks:[
+    {ja:"最近気になったニュースは、近くの病院にファシリティドッグのハンドラーが加わったというもので——その役割を担うことになったのが私の親友でした。", en:"A piece of news that recently caught my attention was about a facility dog handler joining a nearby hospital — and the person taking on that role was my close friend."},
+    {ja:"日本では現在、ファシリティドッグを導入している病院はわずか4か所しかなく、非常に珍しい取り組みです。", en:"There are currently only four hospitals in Japan that have introduced facility dogs, making it a very rare initiative."},
+    {ja:"そのため、友人の任命は大きな注目を集め、地元のニュースにも取り上げられました。", en:"Because of that, my friend's appointment attracted a lot of attention and was even covered by local news."},
+    {ja:"長い間、友人がこの目標に向けて懸命に努力している姿を見てきたので、私にとって本当に嬉しいニュースでした。", en:"Since I had been watching my friend work so hard toward this goal for so long, it was truly wonderful news for me personally."},
+    {ja:"彼女の歩みは、夢を追い続けることの大切さを改めて教えてくれました。", en:"Her journey reminded me once again how important it is to keep chasing your dreams."}
+  ]},
+  { n:26, title:"Explain the role of education in shaping the future.", file:"２６__Explain_the_role_of_education_in_shaping_the_future_.aac", chunks:[
+    {ja:"教育は社会の未来を形作る上でとても重要な役割を果たすと思います。", en:"I think education plays a very important role in shaping the future of society."},
+    {ja:"個人の可能性を広げるだけでなく、社会全体の発展にも貢献します。", en:"It not only broadens individual potential but also contributes to the development of society as a whole."},
+    {ja:"教育を通じて、問題解決力や批判的思考力が身につきます——どの職業、どの時代にも必要なスキルです。", en:"Through education, you develop the ability to solve problems and think critically — skills that are needed in any profession and in any era."},
+    {ja:"教育を改善するためには、それぞれの学習スタイルに合った環境を提供することが大切だと思います。", en:"To improve education, I think it's important to provide environments that suit each individual's learning style."},
+    {ja:"場所や時間を問わず学べるオンライン学習の普及は大きな前進だと感じています——そして私自身もそれに感謝しています。", en:"The spread of online learning, which allows people to study regardless of location or time, feels like a significant step forward, and one I'm personally grateful for."}
+  ]},
+  { n:27, title:"Describe a time when you helped someone.", file:"２７_Describe_a_time_when_you_helped_someone_.aac", chunks:[
+    {ja:"誰かを助けた経験として思い浮かぶのは、職場に入ってきた新しいスタッフをサポートしたことです。", en:"One experience that comes to mind when I think about helping someone is supporting a new staff member who joined my workplace."},
+    {ja:"慣れない環境で不安そうにしていたので、自然に声をかけたいという気持ちになりました。", en:"They seemed anxious in an unfamiliar environment, and I naturally wanted to reach out."},
+    {ja:"業務の手順を一緒に確認したり、いつでも気軽に質問できるよう気にかけ続けました。", en:"I would go through work procedures with them and keep checking in so they felt comfortable asking questions anytime."},
+    {ja:"徐々に自信をつけて、自立して動けるようになっていく姿を見るのはとても嬉しかったです。", en:"Seeing them gradually gain confidence and move more independently was really rewarding."},
+    {ja:"その経験から、誰かを助けることは自分にもエネルギーを返してくれると感じました。", en:"From that experience, I felt that helping someone also gives you energy in return."},
+    {ja:"誰かの成長をサポートすることは、最終的にチーム全体にポジティブな影響をもたらすと学びました。", en:"I learned that when you help someone grow, it ultimately has a positive impact on the entire team."}
+  ]},
+  { n:28, title:"Talk about a skill you would like to learn.", file:"２８_Talk_about_a_skill_you_would_like_to_learn_.aac", chunks:[
+    {ja:"英語は、私が常に向上させようと取り組んでいるスキルの一つです。", en:"One skill I'm constantly working to improve is English."},
+    {ja:"流暢に話せるようになれば、世界中の人と議論したり、英語で講義を受けたりできるようになります——それは多くの新しい機会を開くことになります。", en:"If I can speak fluently, I'll be able to have discussions with people from all over the world and attend lectures in English, which would open up so many new opportunities."},
+    {ja:"英語で自由にコミュニケーションできれば、知識が広がり、より柔軟に考えられるようになります——それは本当に楽しみなことです。", en:"Being able to communicate freely in English would broaden my knowledge and allow me to think more flexibly — and that's something I find genuinely exciting."},
+    {ja:"このスキルを伸ばすために、英語のコンテンツを毎日見たり少し読んだりし続け、できるだけネイティブスピーカーと話す機会を見つけることが大切だと思います。", en:"To develop this skill, I think the key is to keep watching English content and reading a little every day, while also finding opportunities to speak with native speakers whenever I can."},
+    {ja:"その組み合わせが、私をゴールへ導いてくれると信じています。", en:"That combination, I believe, is what will get me there."}
+  ]},
+  { n:29, title:"Explain how people can stay motivated when facing difficulties.", file:"２９_Explain_how_people_can_stay_motivated_when_facing_difficulties_.aac", chunks:[
+    {ja:"困難に直面したときにモチベーションを保つ最も効果的な方法は、最終的な目標を常に意識し続けることだと思います——なぜ始めたのかを忘れないことです。", en:"I think the most effective way to stay motivated when facing difficulties is to always keep your ultimate goal in mind — not to forget why you started in the first place."},
+    {ja:"例えば、英語学習を諦めそうになったとき、アメリカの大学で学ぶという夢を思い出すことで、また前を向けました。", en:"For example, when I was about to give up on learning English, remembering my dream of studying at an American university helped me look forward again."},
+    {ja:"夢の大きさが、壁を乗り越える力になりました。", en:"The size of the dream became the power to push through."},
+    {ja:"また、自分に完璧を求めないことも大切だと思います。", en:"I also think it's important not to demand perfection of yourself."},
+    {ja:"少しでも前進できていれば、それで十分です。自分の小さな成長を認めることが、長期的に続けるためのエネルギーになります。", en:"As long as you're making even a little progress, that's enough — and learning to acknowledge your own small wins is what keeps you going in the long run."}
+  ]},
+  { n:30, title:"Talk about your favorite subject in school.", file:"３０_Talk_about_your_favorite_subject_in_school_.aac", chunks:[
+    {ja:"学校で一番好きな教科は英語でした。", en:"My favorite subject in school was English."},
+    {ja:"親友の一人がオーストラリア人で、それがこの言語への強い興味のきっかけになりました。", en:"One of my close friends was Australian, and that's what sparked my strong interest in the language."},
+    {ja:"中学生の頃、英語の資格試験を受け、合格するために毎日必死に勉強したことを覚えています。", en:"When I was in junior high school, I took an English qualification exam, and I remember studying desperately every day to pass it."},
+    {ja:"その経験が、卒業後も学び続けたいという気持ちにつながりました。", en:"That experience is what made me want to keep learning even after graduating."},
+    {ja:"好きな教科は本当に人生を豊かにしてくれると、自分の経験から実感しています。", en:"I've come to realize through my own experience that a subject you love can truly enrich your life."}
+  ]},
+  { n:31, title:"Describe a place you would like to visit in the future.", file:"３１__Describe_a_place_you_would_like_to_visit_in_the_future_.aac", chunks:[
+    {ja:"ずっと行きたいと思っている場所はスペインです。", en:"A place I've always wanted to visit is Spain."},
+    {ja:"スペイン人の明るく陽気な気質と、一緒に人生を楽しむ文化に惹かれています。", en:"I'm drawn to the bright, cheerful nature of the Spanish people and their culture of enjoying life together."},
+    {ja:"特に、トマト祭りに興味があります。日本では、日常を忘れてみんなで純粋に楽しむ機会はあまりないので、言語を超えて世界中の人と一緒にイベントを楽しむというのは非常に魅力的です。", en:"In particular, I'm fascinated by the Tomato Festival. In Japan, we don't really have many opportunities to forget about daily life and just have pure fun like that — so the idea of enjoying an event alongside people from all over the world, regardless of language, is incredibly appealing to me."},
+    {ja:"スペインに行く前に、まず英語をマスターし、それからスペイン語も学びたいと思っています。", en:"Before going to Spain, I'd first like to master English, and then learn Spanish too."},
+    {ja:"現地の言葉で会話できれば、旅行がずっと豊かになるはずです。", en:"Being able to have conversations in the local language would make the travel experience so much richer."}
+  ]},
+  { n:32, title:"Discuss the advantages of studying online.", file:"３２_Discuss_the_advantages_of_studying_online_.aac", chunks:[
+    {ja:"オンライン学習の最大のメリットは、場所や時間に縛られずに学べる自由さだと思います——自分のペースで進められるのも大きな魅力です。", en:"The biggest advantage of online learning, I think, is the freedom to study anywhere, at any time — and the ability to go at your own pace is a huge appeal."},
+    {ja:"例えば、私は働きながらアメリカのオンライン大学で学ぼうとしています。", en:"For example, I'm trying to study at an American online university while working."},
+    {ja:"キャンパスに通う必要がないので、早朝や休みの日に勉強時間を組み込めます——それがはるかに持続しやすくしています。", en:"Since I don't need to commute to campus, I can fit study time into my schedule early in the morning or on days off, which makes it much more sustainable."},
+    {ja:"一方で、自己規律が必要なのは、より難しい面の一つです。", en:"On the other hand, the need for self-discipline is one of the more challenging aspects."},
+    {ja:"自分から学ぼうとする意欲がなければ、続けることは難しいですが、その困難さも含めて、オンライン学習は個人の成長のための素晴らしい道だと思います。", en:"Without the drive to learn on your own, it's hard to keep going. But even with that challenge, I think online learning is a wonderful path for personal growth."}
+  ]},
+  { n:33, title:"Describe a time when you worked under pressure.", file:"３３_Describe_a_time_when_you_worked_under_pressure_.aac", chunks:[
+    {ja:"プレッシャーの中で働いた経験として思い浮かぶのは、施設に通う障がい者の方々を旅行に連れて行ったイベントです。", en:"One experience that comes to mind when I think about working under pressure is an event where we took the people with disabilities who attend our facility on a trip."},
+    {ja:"常に冷静に状況を判断し、必要なときにすばやく対応しなければなりませんでした。", en:"I had to constantly assess situations calmly and respond quickly when needed."},
+    {ja:"頭の中で優先順位を整理しながら、動き続けるという経験でした。", en:"It was an experience of continuing to move while keeping priorities organized in my head."},
+    {ja:"そこから、プレッシャーの下で冷静でいるためには、事前の準備とチームメイトとの信頼関係が必要だと学びました。", en:"From that, I learned that staying calm under pressure requires preparation in advance and a relationship of trust with your teammates."},
+    {ja:"チームとして支え合えたからこそ乗り越えられたと心から思っています——それは今も毎日職場で携えていることです。", en:"I truly believe we were able to get through it because we supported each other — and that's something I carry with me every day at work now."}
+  ]},
+  { n:34, title:"Talk about a book or movie that taught you a lesson.", file:"３４__Talk_about_a_book_or_movie_that_taught_you_a_lesson_.aac", chunks:[
+    {ja:"大切なことを教えてくれた本は「Atomic Habits」です。", en:"A book that taught me something important is \"Atomic Habits.\""},
+    {ja:"日々の小さな習慣がどれほど重要か、そして積み重ねの力を教えてくれました。", en:"It showed me how crucial daily small habits are, and the power of accumulation."},
+    {ja:"何度も英語学習を諦めそうになったとき、この本は結果ではなく習慣に集中することの大切さを教えてくれました。", en:"When I almost gave up on studying English multiple times, reading this book taught me the importance of focusing on the habit rather than the result."},
+    {ja:"毎日少しでも英語に触れる習慣を作ることで、気づかないうちに続けられるようになりました。", en:"By making it a habit to engage with English even just a little each day, I was able to keep going without even realizing it."},
+    {ja:"この本が教えてくれた最大の教訓は、大きな変化は小さな行動の積み重ねから生まれるということ——何か新しいことに挑戦するたびに、その考え方を思い出すようにしています。", en:"The greatest lesson this book gave me is that big change comes from accumulating small actions — and whenever I take on something new, I try to remember that way of thinking."}
+  ]},
+  { n:35, title:"Explain the importance of having good friends.", file:"３５__Explain_the_importance_of_having_good_friends_.aac", chunks:[
+    {ja:"良い友人を持つことは、人生においてとても意味深いことだと思います。", en:"I think having good friends is very meaningful in life."},
+    {ja:"友人は困難なときに支えてくれるだけでなく、自分を成長させてくれる存在でもあります。", en:"Friends not only support you in difficult times but are also people who help you grow."},
+    {ja:"親友は看護師で、今年ついに長年の夢だったファシリティドッグのハンドラーになることを達成しました。", en:"My best friend is a nurse who this year finally achieved her long-held dream of becoming a facility dog handler."},
+    {ja:"彼女の姿を見て、諦めかけていた自分の夢を追いかける勇気をもらいました。", en:"Watching her gave me the courage to pursue my own dream that I had been about to give up on."},
+    {ja:"良い友人に必要な資質は誠実さと共感力だと思います——話を聞いてくれるだけでなく、必要なときには辛いことも言ってくれる存在が、本当に良い友人だと感じています。", en:"In my view, the qualities needed in a good friend are honesty and empathy — someone who not only listens to you but also tells you hard truths when necessary. That's what I feel a truly good friend is."}
+  ]},
+  { n:36, title:"Describe an environmental issue in your country.", file:"３６__Describe_an_environmental_issue_in_your_country_.aac", chunks:[
+    {ja:"日本で深刻だと感じる環境問題はプラスチック廃棄物です。", en:"An environmental issue I find serious in Japan is plastic waste."},
+    {ja:"特に海洋プラスチック汚染は、日本だけでなく地球全体に影響する問題で、私たち全員が共有する懸念です。", en:"In particular, ocean plastic pollution affects not just Japan but the entire planet, which makes it a concern we all share."},
+    {ja:"ボランティアによるビーチクリーンアップが増えているのは良いことですが、使い捨てプラスチックの使用を根本から減らさなければ、問題は本当には解決しないと思います。", en:"Volunteer beach cleanups are increasing, which is encouraging. That said, without reducing the use of single-use plastic at its root, the problem won't truly be solved."},
+    {ja:"日本ではレジ袋の有料化が始まりましたが、まだやるべきことはたくさんあります。", en:"Japan has started charging for plastic bags, but there's still a lot more to be done."},
+    {ja:"個人ができることから始めること——例えばエコバッグやマイボトルを持ち歩くこと——が、本当の変化に向けた重要な第一歩だと思います。", en:"I think starting from what individuals can do — like carrying reusable bags or water bottles — is an important first step toward real change."}
+  ]},
+  { n:37, title:"Talk about a time you received useful advice.", file:"３７__Talk_about_a_time_you_received_useful_advice_.aac", chunks:[
+    {ja:"人生で役に立ったアドバイスの一つは「自分のペースで進んでいい」という言葉です。", en:"One piece of advice that has been useful in my life is \"it's okay to go at your own pace.\""},
+    {ja:"焦りを感じていたとき、信頼している人が伝えてくれました。", en:"It was told to me by someone I trust when I was feeling rushed and comparing myself to others."},
+    {ja:"英語学習で他の人と比べて落ち込んでいたとき、「誰でも自分のペースがある——自分自身の成長に集中して」という言葉を聞いて、比べることをやめ、自分がコントロールできることに集中できるようになりました。", en:"When I was feeling down about my English learning journey, hearing the words \"everyone has their own pace — just focus on your own progress\" allowed me to stop comparing and start focusing on what I could actually control."},
+    {ja:"そのアドバイスは今でも心に残っています。", en:"That advice still stays with me."},
+    {ja:"特に壁にぶつかったとき、その言葉を思い出すと少し楽になります——良いアドバイスは本当に何年も支えてくれる力があると思います。", en:"Especially when I hit a wall, remembering those words makes things a little easier — and I think good advice really does have the power to support you for many years to come."}
+  ]},
+  { n:38, title:"Explain the benefits of having part-time work as a student.", file:"３８_Explain_the_benefits_of_having_part-time_work_as_a_student_.aac", chunks:[
+    {ja:"学生がアルバイトをすることには、お金以外にも大きなメリットがあると思います。", en:"I think working part-time as a student has significant benefits beyond just the money."},
+    {ja:"実社会での経験を積むことで、学校では身につけられないスキルが身につきます。", en:"Gaining real-world experience helps you develop skills that can't be learned in school."},
+    {ja:"例えば、仕事を通じてコミュニケーションやチームワークという必須スキルが学べます。", en:"For example, through work you can learn essential skills like communication and teamwork."},
+    {ja:"また、多様な人々と関わることで、自然と問題解決能力も養われます。", en:"And by interacting with a wide variety of people, you naturally develop problem-solving abilities too."},
+    {ja:"一方で、アルバイトに時間をかけすぎると学業に影響するので注意が必要です。", en:"On the other hand, spending too much time on a part-time job can affect your studies, so it's something to be careful about."},
+    {ja:"勉強が学生の第一の責任なので、バランスを保ちながら取り組むことが大切だと思います。", en:"Since studying is a student's primary responsibility, I think it's important to approach it while maintaining a good balance."}
+  ]},
+  { n:39, title:"Describe an achievement you are proud of.", file:"３９__Describe_an_achievement_you_are_proud_of_.aac", chunks:[
+    {ja:"誇りに思う実績は、1年以上、毎朝英語を勉強する習慣を続けられたことです。", en:"An achievement I'm proud of is having been able to continue the habit of studying English every morning for over a year."},
+    {ja:"小さなことに思えるかもしれませんが、私にとっては大きな達成です。", en:"It might seem small, but for me it's a significant accomplishment."},
+    {ja:"最初は3日で諦めると思っていましたが、毎朝少しずつ積み重ねていくうちに、自然と当たり前のことになっていきました。", en:"At first I thought I'd give up after three days. But as I kept accumulating little by little each morning, it naturally became something I expected of myself."},
+    {ja:"続けられた最大の理由は、夢があったことです。", en:"The biggest reason I was able to continue is that I had a dream."},
+    {ja:"目指すものがあると、人は自分が思っていた以上の力を出せると実感しています。", en:"And I've come to realize that when you have something to aim for, you can push yourself further than you ever thought possible."}
+  ]},
+  { n:40, title:"Talk about the impact of advertising on people's choices.", file:"４０_Talk_about_the_impact_of_advertising_on_people_s_choices_.aac", chunks:[
+    {ja:"広告は人々の選択に大きな影響を与えると思います。", en:"I think advertising has a significant impact on people's choices."},
+    {ja:"うまく使われれば有益な情報を届けられますが、誤った使われ方をすると消費者の信頼を失うことにもなりかねません。", en:"When used well, it can deliver useful information — but when used poorly, it can lead to a loss of consumer trust."},
+    {ja:"例えば、健康食品の広告を額面通りに信じるのではなく、自分で調べる習慣を持つことが大切だと思います。", en:"For example, with health product advertisements, I think it's important not to believe them at face value, but instead to develop the habit of researching things yourself before making a decision."},
+    {ja:"広告自体は悪いものではありませんが、情報を批判的に見る力を養うことが大切だと感じます——特に自分や大切な人を守るためには。", en:"Advertising itself isn't bad, but developing the ability to look at information critically is something I feel is essential — especially to protect yourself and the people you care about."}
+  ]},
+  { n:41, title:"Explain why teamwork is important in school or work.", file:"４１__Explain_why_teamwork_is_important_in_school_or_work_.aac", chunks:[
+    {ja:"チームワークは学校でも職場でもとても重要だと思います。", en:"I think teamwork is very important in both school and work."},
+    {ja:"一人では限界がある問題も、チームで取り組むことでより良い解決策が生まれることが多いです。", en:"Problems that one person has limits with can often be solved with better solutions when tackled as a team."},
+    {ja:"例えば、職場で難しいケースに対応するとき、スタッフ間でアイデアを共有することで、一人では思いつかない視点が生まれます。", en:"For example, when dealing with a difficult case at work, sharing ideas among staff produces perspectives that wouldn't occur to any single person."},
+    {ja:"チームワークで最も難しいのは、意見の違いをどう乗り越えるかだと思います。", en:"What I think is hardest about teamwork is how to overcome differences of opinion."},
+    {ja:"でも、お互いの違いを尊重し話し合える環境があれば、その違いがチームの最大の強みになり得ます。", en:"But if there's an environment where you can respect each other's differences and talk things through, those differences can actually become the team's greatest strength."}
+  ]},
+  { n:42, title:"Describe a tradition or holiday in your culture.", file:"４２_Describe_a_tradition_or_holiday_in_your_culture_.aac", chunks:[
+    {ja:"日本の文化で特に大切にしているイベントは新年です。", en:"One event I particularly cherish in Japanese culture is New Year."},
+    {ja:"家族や親戚が全員一か所に集まる、年に一度の特別な時間です。", en:"It's a once-a-year special time when family and relatives all gather together."},
+    {ja:"お正月には、お節料理を囲んで、過ぎた一年がどんな年だったか、来年はどんな年にしたいかを話します。", en:"At New Year, we sit around the table eating osechi cuisine and talk about what kind of year the past year was and what kind of year we want the coming year to be."},
+    {ja:"普段なかなか会えない親戚と会える、貴重な機会でもあります。", en:"It's also a precious opportunity to see relatives we don't often get to meet."},
+    {ja:"日本では、お正月がほぼ唯一みんなが集まる機会という家庭も多く、だからこそ余計に特別な意味を持っています。", en:"In Japan, there are many families where New Year is about the only time everyone gathers, which makes it all the more meaningful."}
+  ]},
+  { n:43, title:"Talk about a teacher who made learning enjoyable.", file:"４３_Talk_about_a_teacher_who_made_learning_enjoyable_.aac", chunks:[
+    {ja:"学ぶことを楽しいと感じさせてくれた先生は、英語の先生でした。", en:"The teacher who made me feel that learning was enjoyable was my English teacher."},
+    {ja:"教え方がとてもわかりやすく、いつも授業が楽しみでした。", en:"Their teaching style was very easy to understand, and I always looked forward to class."},
+    {ja:"例えば、ネイティブスピーカーを招いてみんなで楽しく会話をしたり、授業で映画を見たりすることがありました。", en:"For example, they would sometimes bring in a native English speaker and we would all have fun conversations together, or we would watch movies in class."},
+    {ja:"そういった工夫のおかげで、英語が自然と楽しいものになっていきました。", en:"Thanks to those kinds of creative approaches, English naturally became something I enjoyed learning."},
+    {ja:"その先生のおかげで英語が好きになりました。学ぶ喜びを伝えられる先生は、生徒の人生を変える力があると思います。", en:"Because of that teacher, I came to feel that English was fun. I believe that a teacher who can share the joy of learning has the power to change a student's life."}
+  ]},
+  { n:44, title:"Explain why people enjoy listening to music.", file:"４４_Explain_why_people_enjoy_listening_to_music_.aac", chunks:[
+    {ja:"音楽は感情に直接働きかけるから、人々は音楽を楽しむのだと思います。", en:"I think people enjoy music because it works directly on emotions."},
+    {ja:"言葉がなくても、音楽は感情を表現し受け取ることができます——なかなか言葉で説明しにくい方法で。", en:"Even without words, music can both convey and evoke feelings in a way that's hard to explain."},
+    {ja:"例えば、落ち込んでいるとき、ヒーリングミュージックを聴くと自然と穏やかな気持ちになります。集中して仕事をしたいときは、インストゥルメンタルのBGMをかけます。", en:"For example, when I'm feeling down, listening to healing music naturally calms me. When I want to concentrate on work, I put on instrumental background music instead."},
+    {ja:"音楽はストレスを和らげるだけでなく、集中力を高めたり、記憶を呼び起こしたりする力もあります。", en:"Music not only relieves stress but also has the power to improve concentration and bring back memories."},
+    {ja:"音楽が心と体の健康にポジティブな効果をもたらすことが示されています——それは私が心から興味深いと感じることです。", en:"It has been shown that music has positive effects on both mental and physical health — and that's something I find genuinely fascinating."}
+  ]},
+  { n:45, title:"Describe a technology that has changed your daily life.", file:"４５_Describe_a_technology_that_has_changed_your_daily_life_.aac", chunks:[
+    {ja:"日常生活を大きく変えたテクノロジーはスマートフォンです。", en:"A technology that has greatly changed my daily life is the smartphone."},
+    {ja:"情報へのアクセス、コミュニケーション、学習——あらゆる面で生活が変わりました。", en:"It has changed my life in every aspect — access to information, communication, and learning."},
+    {ja:"例えば、語学学習アプリを使って、通勤時間を勉強時間に変えることができました。", en:"For example, using language learning apps, I've been able to turn commuting time into study time."},
+    {ja:"スマートフォンがなければ、スキマ時間を学習に活用することはできなかったと思います。", en:"Without a smartphone, I don't think I could have taken advantage of small pockets of time for learning."},
+    {ja:"一方で、スマートフォンの使いすぎは睡眠に影響したり集中力を低下させたりします。", en:"On the other hand, using smartphones too much can affect sleep and make it easier to lose concentration."},
+    {ja:"便利なツールだからこそ、使い方を意識することが大切だと思います。", en:"Precisely because it's a convenient tool, I think it's important to be conscious of how you use it."}
+  ]},
+  { n:46, title:"Talk about a goal you have for the next year.", file:"４６__Talk_about_a_goal_you_have_for_the_next_year_.aac", chunks:[
+    {ja:"来年の目標は、DETで目標スコアを達成し、アメリカのオンライン大学に本格的に入学することです。", en:"My goal for next year is to achieve my target score on the DET and successfully enroll full-time at an American online university."},
+    {ja:"そのために、毎日計画的に英語を勉強し、特にリスニングとスピーキングという苦手な分野に集中して取り組んでいます。", en:"For that reason, I'm continuing to study English every day, practicing in a planned way and focusing especially on areas where I'm weaker, like listening and speaking."},
+    {ja:"この目標は、単なる試験合格以上の意味があります——長年の夢への第一歩です。", en:"This goal is not just about passing an exam for me — it's the first step toward a long-held dream."},
+    {ja:"一度諦めかけた夢だからこそ、絶対に達成したいという強い気持ちがあります。", en:"Precisely because it's a dream I almost gave up on, I'm strongly determined to achieve it."}
+  ]},
+  { n:47, title:"Explain the importance of learning from mistakes.", file:"４７_Explain_the_importance_of_learning_from_mistakes_.aac", chunks:[
+    {ja:"失敗から学ぶことは、成長のためにとても重要だと思います。", en:"I think learning from failures is very important for growth."},
+    {ja:"失敗を恐れて挑戦しないよりも、失敗しながら前に進む方が、長い目で見て大きな強さにつながります。", en:"Rather than fearing failure and not trying, moving forward while making mistakes leads to greater strength in the long run."},
+    {ja:"英語学習で自分のレベルより難しい教材を選んで失敗したとき、なぜうまくいかなかったかを振り返ることで、次回の正しいアプローチが見えました。", en:"When I chose materials above my level in English learning and failed, reflecting on why it didn't work helped me see the right approach for next time."},
+    {ja:"失敗を「終わり」ではなく「フィードバック」として見るようになってから、新しいことへの挑戦が怖くなくなりました。", en:"Since I started seeing failure not as \"the end\" but as \"feedback,\" my fear of trying new things has decreased."},
+    {ja:"失敗を恐れない姿勢が、学習のスピードを上げると感じています。", en:"I feel that having an attitude of not fearing failure speeds up the pace of learning."}
+  ]},
+  { n:48, title:"Talk about the role of parents in a child's education.", file:"４８_Talk_about_the_role_of_parents_in_a_child_s_education_.aac", chunks:[
+    {ja:"子どもの教育における親の役割はとても大きいと思います。", en:"I think the role of parents in a child's education is very significant."},
+    {ja:"学校で学ぶことに加えて、家庭環境と親の姿勢が子どもの成長に大きく影響します。", en:"Beyond what is learned at school, the home environment and parents' attitude greatly influences a child's growth."},
+    {ja:"例えば、親が読書をしている姿を見せることで、子どもも自然と読書に興味を持つようになります。", en:"For example, by showing children that they read books, parents can naturally get children interested in reading too."},
+    {ja:"学びへの好奇心は、親の行動を通じて伝わることが多いと思います。", en:"I think curiosity about learning is often conveyed through parents' behavior."},
+    {ja:"学校と家庭がうまく連携することで、子どもはより安心できる環境で学ぶことができます。", en:"When schools and homes work well together, children can learn in a more secure environment."},
+    {ja:"親が子どもの学びに関心を持ち続けることが、長期的な成長を支える重要な要素だと思います。", en:"I think parents maintaining interest in their children's learning is an important element that supports long-term growth."}
+  ]},
+  { n:49, title:"Describe a person you admire and respect.", file:"４９_Describe_a_person_you_admire_and_respect_.aac", chunks:[
+    {ja:"深く尊敬している人物は、看護師として働きながらも夢を諦めなかった親友です。", en:"A person I deeply respect is my best friend who never gave up on her dream while working as a nurse."},
+    {ja:"どんな困難が生じても前進し続けた彼女の姿に、心から敬意を感じています。", en:"I feel genuine respect for the way she kept moving forward no matter what difficulties arose."},
+    {ja:"彼女は約10年間、ファシリティドッグのハンドラーになるという夢を持ち続け、今年ついにそれを叶えました。", en:"She had a dream of becoming a facility dog handler for about ten years, and this year she finally made it come true."},
+    {ja:"簡単な道のりではなかったはずですが、決して諦めなかった彼女の強さは本当に素晴らしいです。", en:"It must not have been an easy road, but her strength in never giving up is truly wonderful."},
+    {ja:"彼女の存在は私にとって大きな励みです。夢は追い続ける人のものだということを、行動で示してくれました——それは毎日私が心に刻んでいる教えです。", en:"Her existence is a great encouragement for me. She showed me through her actions that dreams belong to those who keep chasing them — and that's a lesson I carry with me every day."}
+  ]},
+  { n:50, title:"Explain why people should read every day.", file:"５０__Explain_why_people_should_read_every_day_.aac", chunks:[
+    {ja:"毎日読書することは、知識を広げるだけでなく、思考力や語彙力を高めるためにもとても効果的だと思います。", en:"I think reading every day is very effective not only for expanding knowledge but also for improving thinking ability and vocabulary."},
+    {ja:"例えば、「Atomic Habits」を読んだ後、習慣に対する考え方が大きく変わりました。", en:"For example, after reading Atomic Habits, my way of thinking about habits changed significantly."},
+    {ja:"本から得た知識は、実際の行動に本当の変化をもたらすことがあります。", en:"Knowledge gained from books can sometimes bring about real changes in actual behavior."},
+    {ja:"読書の魅力の一つは、特別な場所や道具が必要ないことです。", en:"One of the appealing things about reading is that it doesn't require a special place or tools."},
+    {ja:"スキマ時間に少し読むだけでも、積み重なれば大きな学びになります——英語の本を読むことは英語力の向上にも直接つながるので、まさに一石二鳥だと感じています。", en:"Even reading a little during spare moments adds up to significant learning when accumulated — and for me, reading English books also connects directly to improving my English, so it truly feels like two goals at once."}
+  ]}
+];
+
+// ── STATE ──
+const audio = document.getElementById('audio');
+let repeatOn = false;
+let shuffleQueue = [];
+let shuffleIdx = 0;
+let isShuffling = false;
+let currentIdx = -1; // index in TOPICS
+let quizOrder = [];
+let quizPos = 0;
+
+// ── BUILD UI ──
+const topicSel = document.getElementById('topicSel');
+const groupSel = document.getElementById('groupSel');
+const wrap = document.getElementById('topicsWrap');
+
+TOPICS.forEach((t, i) => {
+  // Dropdown
+  const opt = document.createElement('option');
+  opt.value = i; opt.textContent = `${t.n}. ${t.title}`;
+  topicSel.appendChild(opt);
+
+  // Card
+  const card = document.createElement('div');
+  card.className = 'topic-card'; card.id = `card-${i}`;
+  const chunksHtml = t.chunks.map(c =>
+    `<div class="chunk"><div class="ja">${c.ja}</div><div class="en">${c.en}</div></div>`
+  ).join('');
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-num">${t.n}</div>
+      <div class="card-title">${t.title}</div>
+      <button class="play-btn-small" onclick="playSingle(${i})">▶ Play</button>
+    </div>
+    <div class="chunks">${chunksHtml}</div>`;
+  wrap.appendChild(card);
+});
+
+// Groups
+for (let g = 0; g < Math.ceil(50/5); g++) {
+  const s = g*5+1, e = Math.min((g+1)*5, 50);
+  const opt = document.createElement('option');
+  opt.value = g; opt.textContent = `Topics ${s}–${e}`;
+  groupSel.appendChild(opt);
+}
+
+// ── AUDIO ──
+audio.addEventListener('timeupdate', () => {
+  const t = audio.currentTime, d = audio.duration || 0;
+  const seek = document.getElementById('seekBar');
+  if (!isNaN(d) && d > 0) {
+    seek.max = d; seek.value = t;
+    document.getElementById('timeDisplay').textContent = `${fmt(t)} / ${fmt(d)}`;
+  }
+});
+audio.addEventListener('ended', onEnded);
+document.getElementById('seekBar').addEventListener('input', e => {
+  audio.currentTime = parseFloat(e.target.value);
+});
+
+function fmt(s) {
+  const m = Math.floor(s/60), sc = Math.floor(s%60);
+  return `${m}:${sc.toString().padStart(2,'0')}`;
+}
+
+function loadAndPlay(idx) {
+  currentIdx = idx;
+  const t = TOPICS[idx];
+  audio.src = t.file;
+  audio.playbackRate = parseFloat(document.getElementById('speedRange').value);
+  audio.load();
+  audio.play().catch(() => {});
+  setActive(idx);
+  document.getElementById('statusPill').textContent = `${t.n}. ${t.title.substring(0,30)}…`;
+  document.getElementById('statusPill').className = 'pill playing';
+  document.getElementById('progressBar').style.width = ((idx/(TOPICS.length-1))*100).toFixed(1)+'%';
+}
+
+function setActive(idx) {
+  document.querySelectorAll('.topic-card').forEach(c => c.classList.remove('active'));
+  if (idx < 0) return;
+  const card = document.getElementById(`card-${idx}`);
+  if (card) { card.classList.add('active'); card.scrollIntoView({behavior:'smooth', block:'center'}); }
+}
+
+function onEnded() {
+  if (isShuffling) {
+    shuffleIdx++;
+    if (shuffleIdx < shuffleQueue.length) {
+      loadAndPlay(shuffleQueue[shuffleIdx]);
+    } else {
+      if (repeatOn) { shuffleIdx = 0; loadAndPlay(shuffleQueue[0]); }
+      else { stopAll(); }
+    }
+    return;
+  }
+  if (repeatOn && currentIdx >= 0) {
+    audio.currentTime = 0; audio.play();
+    return;
+  }
+  stopAll();
+}
+
+// ── CONTROLS ──
+function playAll() {
+  isShuffling = false;
+  document.getElementById('shufflePill').style.display = 'none';
+  loadAndPlay(0);
+}
+function playSingle(idx) {
+  isShuffling = false;
+  document.getElementById('shufflePill').style.display = 'none';
+  topicSel.value = idx;
+  loadAndPlay(idx);
+}
+function playSelected() { playSingle(parseInt(topicSel.value)); }
+function playGroup() {
+  const g = parseInt(groupSel.value);
+  isShuffling = false;
+  loadAndPlay(g * 5);
+}
+function stopAll() {
+  audio.pause(); audio.src = '';
+  setActive(-1);
+  currentIdx = -1; isShuffling = false;
+  document.getElementById('statusPill').textContent = 'Ready';
+  document.getElementById('statusPill').className = 'pill';
+  document.getElementById('shufflePill').style.display = 'none';
+  document.getElementById('progressBar').style.width = '0%';
+}
+function skipBack() { audio.currentTime = Math.max(0, audio.currentTime - 5); }
+function skipFwd()  { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 5); }
+function toggleRepeat() {
+  repeatOn = !repeatOn;
+  const b = document.getElementById('btnRepeat');
+  b.textContent = repeatOn ? '🔁 ON' : '🔁 OFF';
+  b.className = repeatOn ? 'btn-on' : '';
+}
+function setSpeed(v) {
+  audio.playbackRate = parseFloat(v);
+  document.getElementById('speedLabel').textContent = parseFloat(v).toFixed(2).replace(/\.?0+$/,'') + '×';
+}
+function prevGroup() { const s = groupSel; if(s.selectedIndex > 0) s.selectedIndex--; }
+function nextGroup() { const s = groupSel; if(s.selectedIndex < s.options.length-1) s.selectedIndex++; }
+
+// ── SHUFFLE ──
+function playShuffle() {
+  isShuffling = true;
+  shuffleQueue = [...Array(50).keys()].sort(() => Math.random()-0.5);
+  shuffleIdx = 0;
+  document.getElementById('shufflePill').style.display = '';
+  loadAndPlay(shuffleQueue[0]);
+}
+
+// ── QUIZ MODE ──
+function startQuiz() {
+  quizOrder = [...Array(50).keys()].sort(() => Math.random()-0.5);
+  quizPos = 0;
+  showQuiz();
+}
+function showQuiz() {
+  const idx = quizOrder[quizPos];
+  const t = TOPICS[idx];
+  document.getElementById('qNum').textContent = `Topic ${quizPos+1} / 50`;
+  document.getElementById('qTitle').textContent = t.title;
+  document.getElementById('qReveal').innerHTML = t.chunks.map(c =>
+    `<div class="quiz-chunk"><div class="ja">${c.ja}</div><div class="en">${c.en}</div></div>`
+  ).join('');
+  document.getElementById('qReveal').className = 'quiz-reveal';
+  document.getElementById('quizPill').style.display = '';
+  document.getElementById('quizOverlay').classList.add('show');
+  // preload audio
+  audio.src = t.file; audio.load();
+}
+function quizPlay() {
+  audio.currentTime = 0;
+  audio.playbackRate = parseFloat(document.getElementById('speedRange').value);
+  audio.play().catch(()=>{});
+}
+function quizReveal() {
+  document.getElementById('qReveal').classList.add('show');
+}
+function quizNext() {
+  audio.pause();
+  quizPos++;
+  if (quizPos >= quizOrder.length) { quizEnd(); return; }
+  showQuiz();
+}
+function quizEnd() {
+  audio.pause(); audio.src = '';
+  document.getElementById('quizOverlay').classList.remove('show');
+  document.getElementById('quizPill').style.display = 'none';
+}
+</script>
+</body>
+</html>
