@@ -248,8 +248,12 @@ footer { text-align: center; padding: 30px 20px; color: var(--text3); font-size:
     <!-- Row 5: speed -->
     <div class="ctrl-row">
       <span class="ctrl-label">Speed</span>
-      <input type="range" class="speed-range" id="speedRange" min="0.5" max="2" step="0.05" value="1" oninput="setSpeed(this.value)">
-      <span class="speed-label" id="speedLabel">1.0×</span>
+      <button id="spd07" onclick="setSpeed(0.7)">0.7×</button>
+      <button id="spd08" onclick="setSpeed(0.8)">0.8×</button>
+      <button id="spd09" onclick="setSpeed(0.9)">0.9×</button>
+      <button id="spd10" class="btn-on" onclick="setSpeed(1.0)">1.0×</button>
+      <button id="spd12" onclick="setSpeed(1.2)">1.2×</button>
+      <button id="spd13" onclick="setSpeed(1.3)">1.3×</button>
     </div>
   </div>
   <div class="progress-wrap"><div class="progress-fill" id="progressBar"></div></div>
@@ -657,6 +661,7 @@ let isPlayingAll = false;
 let currentIdx = -1;
 let lastStoppedIdx = 0; // 途中再開用
 let lastStoppedTime = 0; // 止めた時刻（秒）
+let currentSpeed = 1.0; // 現在の再生速度
 let quizOrder = [];
 let quizPos = 0;
 
@@ -718,7 +723,7 @@ function loadAndPlay(idx, startTime=0) {
   currentIdx = idx;
   const t = TOPICS[idx];
   audio.src = t.file;
-  audio.playbackRate = parseFloat(document.getElementById('speedRange').value);
+  audio.playbackRate = currentSpeed;
   audio.load();
   audio.addEventListener('canplay', function seekOnce() {
     if (startTime > 0) audio.currentTime = startTime;
@@ -812,8 +817,15 @@ function toggleRepeat() {
   b.className = repeatOn ? 'btn-on' : '';
 }
 function setSpeed(v) {
-  audio.playbackRate = parseFloat(v);
-  document.getElementById('speedLabel').textContent = parseFloat(v).toFixed(2).replace(/\.?0+$/,'') + '×';
+  currentSpeed = parseFloat(v);
+  audio.playbackRate = currentSpeed;
+  // ボタンのハイライト更新
+  const ids = ['spd07','spd08','spd09','spd10','spd12','spd13'];
+  const vals = [0.7, 0.8, 0.9, 1.0, 1.2, 1.3];
+  ids.forEach((id, i) => {
+    const btn = document.getElementById(id);
+    if (btn) btn.className = Math.abs(vals[i] - currentSpeed) < 0.01 ? 'btn-on' : '';
+  });
 }
 function prevGroup() { const s = groupSel; if(s.selectedIndex > 0) s.selectedIndex--; }
 function nextGroup() { const s = groupSel; if(s.selectedIndex < s.options.length-1) s.selectedIndex++; }
@@ -867,7 +879,7 @@ function showQuiz() {
 }
 function quizPlay() {
   audio.currentTime = 0;
-  audio.playbackRate = parseFloat(document.getElementById('speedRange').value);
+  audio.playbackRate = currentSpeed;
   audio.play().catch(()=>{});
 }
 function quizReveal() {
