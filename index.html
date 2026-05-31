@@ -217,7 +217,8 @@ footer { text-align: center; padding: 30px 20px; color: var(--text3); font-size:
     <!-- Row 1: playback -->
     <div class="ctrl-row">
       <span class="ctrl-label">All</span>
-      <button class="btn-play" onclick="playAll()">▶ Play All</button>
+      <button class="btn-play" onclick="playAll()">▶ 続きから再生</button>
+      <button onclick="playAllFromStart()">⏮ 最初から</button>
       <button onclick="skipBack()">«5s</button>
       <button onclick="skipFwd()">5s»</button>
       <button class="btn-stop" onclick="stopAll()">⏹ Stop</button>
@@ -651,7 +652,9 @@ let repeatOn = false;
 let shuffleQueue = [];
 let shuffleIdx = 0;
 let isShuffling = false;
-let currentIdx = -1; // index in TOPICS
+let isPlayingAll = false;
+let currentIdx = -1;
+let lastStoppedIdx = 0; // 途中再開用
 let quizOrder = [];
 let quizPos = 0;
 
@@ -744,12 +747,27 @@ function onEnded() {
     audio.currentTime = 0; audio.play();
     return;
   }
+  // 連続再生モード：次のトピックへ自動進む
+  if (isPlayingAll && currentIdx >= 0 && currentIdx < TOPICS.length - 1) {
+    loadAndPlay(currentIdx + 1);
+    return;
+  }
   stopAll();
 }
 
 // ── CONTROLS ──
 function playAll() {
   isShuffling = false;
+  isPlayingAll = true;
+  document.getElementById('shufflePill').style.display = 'none';
+  // 途中で止めていたら続きから、最後まで再生済みなら最初から
+  const startIdx = (lastStoppedIdx > 0 && lastStoppedIdx < TOPICS.length) ? lastStoppedIdx : 0;
+  loadAndPlay(startIdx);
+}
+function playAllFromStart() {
+  isShuffling = false;
+  isPlayingAll = true;
+  lastStoppedIdx = 0;
   document.getElementById('shufflePill').style.display = 'none';
   loadAndPlay(0);
 }
@@ -766,10 +784,13 @@ function playGroup() {
   loadAndPlay(g * 5);
 }
 function stopAll() {
-  audio.pause(); audio.src = '';
+  audio.pause();
+  // 止めた位置を記録（途中再開用）
+  if (currentIdx >= 0) lastStoppedIdx = currentIdx;
+  audio.src = '';
   setActive(-1);
-  currentIdx = -1; isShuffling = false;
-  document.getElementById('statusPill').textContent = 'Ready';
+  currentIdx = -1; isShuffling = false; isPlayingAll = false;
+  document.getElementById('statusPill').textContent = lastStoppedIdx > 0 ? `⏸ Topic ${lastStoppedIdx+1}で停止` : 'Ready';
   document.getElementById('statusPill').className = 'pill';
   document.getElementById('shufflePill').style.display = 'none';
   document.getElementById('progressBar').style.width = '0%';
