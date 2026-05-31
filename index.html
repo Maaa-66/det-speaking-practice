@@ -723,14 +723,13 @@ function loadAndPlay(idx, startTime=0) {
   currentIdx = idx;
   const t = TOPICS[idx];
   audio.src = t.file;
-  audio.playbackRate = currentSpeed;
   audio.load();
   audio.addEventListener('canplay', function seekOnce() {
+    audio.playbackRate = currentSpeed; // load後に必ず速度を設定
     if (startTime > 0) audio.currentTime = startTime;
     audio.play().catch(() => {});
     audio.removeEventListener('canplay', seekOnce);
   });
-  if (startTime === 0) audio.play().catch(() => {});
   setActive(idx);
   document.getElementById('statusPill').textContent = `${t.n}. ${t.title.substring(0,30)}…`;
   document.getElementById('statusPill').className = 'pill playing';
